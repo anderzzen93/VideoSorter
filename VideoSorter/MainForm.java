@@ -199,8 +199,9 @@ public class MainForm extends JFrame{
 		EventQueue.invokeLater(new Runnable(){
 			@Override
 			public void run(){
-				System.out.println(System.getProperty("user.home"));
+				
 				String path = FileChooser.fileChooser();
+				
 				if (!path.equals("")){
 					MainForm main = new MainForm(path);
 					main.setVisible(true);

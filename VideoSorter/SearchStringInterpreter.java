@@ -93,14 +93,24 @@ public class SearchStringInterpreter {
 				}
 			}
 		}
+		Stack <Video>  temp = new Stack <Video>();
+		Stack <Video>  temp2 = new Stack <Video>();
 		
 		for (Stack<Video> v : operandWait){
 			for (Video q : v){
-				result.add(q);
+				temp.push(q);
 			}
 		}
 		
-		return result;
+		for (String v : wait){
+			for (Video q : videos){
+			if (q.getMetaData().anyMatch(v)){
+				temp2.push(q);
+			}
+			}
+		}
+		
+		return temp2.isEmpty() ? temp : intersect (temp, temp2); 
 	}
 	
 	private Stack<Video> intersect(Stack<Video> a, Stack<Video> b){
