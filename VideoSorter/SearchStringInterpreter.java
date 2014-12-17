@@ -180,14 +180,16 @@ public class SearchStringInterpreter {
 		for (String s : terms){
 			tokens[index++] = s;
 		}
-		
+
 		for (int i = 0; i < tokens.length; i++){
 			if (isOperand(tokens[i])){
 				out.push(tokens[i]);
 			} else if (isOperator(tokens[i])){
 				if (!wait.isEmpty() && getPriority(tokens[i]) <= getPriority(wait.peek())){
-					while(!wait.isEmpty() && getPriority(tokens[i]) <= getPriority(wait.peek())){
-						out.push(wait.pop());
+					if (!tokens[i].equals("not") && !wait.peek().equals("not")){	
+						while(!wait.isEmpty() && getPriority(tokens[i]) <= getPriority(wait.peek())){
+							out.push(wait.pop());
+						}
 					}
 					wait.push(tokens[i]);
 				} else{
@@ -208,7 +210,7 @@ public class SearchStringInterpreter {
 		while(!wait.isEmpty()){
 			out.push(wait.pop());
 		}
-		
+		System.out.println(out);
 		return out;
 	}
 	

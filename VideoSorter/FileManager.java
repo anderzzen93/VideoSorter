@@ -29,11 +29,13 @@ public class FileManager {
 			if (s.isDirectory()){
 				loadDirectory(s);
 			} else{
-				videos.add(createVideo(s.getAbsolutePath()));
+				if ((s.getAbsolutePath().endsWith(".mp4" ))||(s.getAbsolutePath().endsWith(".mkv" ))||(s.getAbsolutePath().endsWith(".avi" ))){
+					videos.add(createVideo(s.getAbsolutePath()));
+				}
 			}
 		}
 	}
-	
+
 	public Video createVideo(String path){
 		if (path.endsWith(".mp4"))
 			return new MP4Format(path);

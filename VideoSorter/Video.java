@@ -24,12 +24,12 @@ public abstract class Video {
 	}
 	
 	private void updateMetaData(){
-		File metaDataDirectory = new File("C:\\Users\\Martin\\workspace\\Metadata");
+		File metaDataDirectory = new File(System.getProperty(""));
 		
 		metaDataDirectory.mkdirs();
 		
 		if (metaDataDirectory.exists()){
-			File metaDataFile = new File("C:\\Users\\Martin\\workspace\\Metadata\\" + name + ".mdata");
+			File metaDataFile = new File(System.getProperty("") + name + ".mdata");
 			if (!metaDataFile.exists()){
 				try{
 					metaDataFile.createNewFile();
