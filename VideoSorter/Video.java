@@ -2,13 +2,16 @@ package VideoSorter;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public abstract class Video {
 
-	protected String path;
+	protected Path path;
 	protected String name;
 	protected MetaData metaData;
-	public Video(String path){
+	
+	public Video(Path path){
 		this.path = path;
 		this.name = getFileName();
 		this.metaData = new MetaData(name, "");
@@ -20,16 +23,18 @@ public abstract class Video {
 	}
 	
 	private String getFileName(){
-		return path.substring(path.lastIndexOf((int)'\\') + 1, path.length());
+		
+		return path.getFileName().toString();
+		 
 	}
 	
 	private void updateMetaData(){
-		File metaDataDirectory = new File(System.getProperty(""));
+		File metaDataDirectory = new File(Paths.get("metadata").toString());
 		
 		metaDataDirectory.mkdirs();
 		
 		if (metaDataDirectory.exists()){
-			File metaDataFile = new File(System.getProperty("") + name + ".mdata");
+			File metaDataFile = new File(Paths.get("metadata\\" + name + ".mdata").toString());
 			if (!metaDataFile.exists()){
 				try{
 					metaDataFile.createNewFile();

@@ -1,6 +1,7 @@
 package VideoSorter;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.LinkedList;
 
@@ -29,15 +30,16 @@ public class FileManager {
 			if (s.isDirectory()){
 				loadDirectory(s);
 			} else{
-				if ((s.getAbsolutePath().endsWith(".mp4" ))||(s.getAbsolutePath().endsWith(".mkv" ))||(s.getAbsolutePath().endsWith(".avi" ))){
-					videos.add(createVideo(s.getAbsolutePath()));
+				if ((s.getAbsolutePath().endsWith(".mp4" ))||(s.getAbsolutePath().endsWith(".mkv" ))||(s.getAbsolutePath().endsWith(".avi" ))||(s.getAbsolutePath().endsWith(".m4v" ))){
+					videos.add(createVideo(s.toPath()));
 				}
 			}
 		}
 	}
 
-	public Video createVideo(String path){
+	public Video createVideo(Path path){
 		if (path.endsWith(".mp4"))
+			
 			return new MP4Format(path);
 		
 		return new UnknownFormat(path);
