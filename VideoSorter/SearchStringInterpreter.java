@@ -10,7 +10,7 @@ public class SearchStringInterpreter {
 		
 	}
 	
-	public List<Video> interpretString(String terms, List<Video> videos){
+	public List<Video> interpretString(String terms, List<Video> videos, String specificTerm){
 		
 		 Stack<String> lexed = stringLex(terms.toLowerCase());
 		 Stack<String> postFixed = stringPostfix(lexed);
@@ -19,10 +19,10 @@ public class SearchStringInterpreter {
 			 System.out.println(s);
 		 }
 		  
-		 return evaluatePostfix(postFixed, videos);
+		 return evaluatePostfix(postFixed, videos, specificTerm);
 	}
 	
-	private List<Video> evaluatePostfix(Stack<String> terms, List<Video> videos){
+	private List<Video> evaluatePostfix(Stack<String> terms, List<Video> videos, String specificTerm){
 		
 		List<Video> result = new LinkedList<Video>();
 		
@@ -46,14 +46,14 @@ public class SearchStringInterpreter {
 						String operand2 = wait.pop();
 						operandWait.push(new Stack<Video>());
 						for (Video v : videos){
-							if (v.metaData.anyMatch(operand1) && v.metaData.anyMatch(operand2))
+							if (v.metaData.anyMatch(operand1, specificTerm) && v.metaData.anyMatch(operand2, specificTerm))
 								operandWait.peek().push(v);
 						}
 					}else{
 						String match = wait.pop();
 						operandWait.push(new Stack<Video>());
 						for (Video v : videos){
-							if (v.metaData.anyMatch(match)){
+							if (v.metaData.anyMatch(match, specificTerm)){
 								operandWait.peek().push(v);
 							}
 						}
@@ -65,14 +65,14 @@ public class SearchStringInterpreter {
 						String operand2 = wait.pop();
 						operandWait.push(new Stack<Video>());
 						for (Video v : videos){
-							if (v.metaData.anyMatch(operand1) || v.metaData.anyMatch(operand2))
+							if (v.metaData.anyMatch(operand1, specificTerm) || v.metaData.anyMatch(operand2, specificTerm))
 								operandWait.peek().push(v);
 						}
 					} else{
 						String match = wait.pop();
 						operandWait.push(new Stack<Video>());
 						for (Video v : videos){
-							if (v.metaData.anyMatch(match)){
+							if (v.metaData.anyMatch(match, specificTerm)){
 								operandWait.peek().push(v);
 							}
 						}
@@ -83,7 +83,7 @@ public class SearchStringInterpreter {
 						String operand = wait.pop();
 						operandWait.push(new Stack<Video>());
 						for (Video v : videos){
-							if (!v.metaData.anyMatch(operand)){
+							if (!v.metaData.anyMatch(operand, specificTerm)){
 								operandWait.peek().push(v);
 							}
 						}
@@ -104,10 +104,18 @@ public class SearchStringInterpreter {
 		
 		for (String v : wait){
 			for (Video q : videos){
-			if (q.getMetaData().anyMatch(v)){
-				temp2.push(q);
+				if (q.getMetaData().anyMatch(v, specificTerm)){
+					temp2.push(q);
+				}
 			}
-			}
+		}
+		
+		if (temp2.isEmpty()){
+			return temp;
+		} else if (temp.isEmpty()){
+			return temp2;
+		} else{
+			intersect(temp, temp2);
 		}
 		
 		return temp2.isEmpty() ? temp : intersect (temp, temp2); 
@@ -157,26 +165,56 @@ public class SearchStringInterpreter {
 
 		Stack<String> result = new Stack<String>();
 		String buffer = "";
-		for (int a = 0; a < terms.length(); a++){
-			if (terms.charAt(a) == '(' || terms.charAt(a) == ')'){
+		
+		for (int i = 0; i < terms.length(); i++){
+			if (terms.charAt(i) == '(' || terms.charAt(i) == ')'){
 				if (buffer.length() != 0){
 					result.push(buffer);
 					buffer = "";
-				} result.push(new String( new char[]{terms.charAt(a)}));
+				} result.push(new String( new char[]{terms.charAt(i)}));
 			}
-			else if (terms.charAt(a) == ' '){
+			else if (terms.charAt(i) == ' ' && isNextOperator(i, terms)){
 				if (buffer.length() != 0){
 					result.push(buffer);
 					buffer = "";
 				}
 			}else{
-				buffer += terms.charAt(a);
+				buffer += terms.charAt(i);
 			}
 		}
 		if (buffer.length() != 0){
 			result.push(buffer);
 		}
 		return result;
+	}
+	
+	private boolean isNextOperator(int index, String terms){
+		
+		if (isLastOperand(index, terms))
+			return true;
+		
+		if (index + 3 < terms.length()){
+			if (terms.substring(index + 1, index + 4).equals("or ")){
+				return true;
+			}
+		} else{
+			return true;
+		}
+		
+		if (index + 4 < terms.length()){
+			String substr = terms.substring(index + 1, index + 5);
+			if (substr.equals("and ") || substr.equals("not "))
+				return true;
+		} else{
+			return true;
+		}
+		
+		return false;
+	}
+	
+	private boolean isLastOperand(int index, String terms){
+		String substr = terms.substring(index, terms.length());
+		return !substr.contains(" and ") && !substr.contains(" or ") && !substr.contains(" not ");
 	}
 
 	private Stack<String> stringPostfix(Stack<String> terms){

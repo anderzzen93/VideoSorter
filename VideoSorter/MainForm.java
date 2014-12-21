@@ -1,12 +1,20 @@
 package VideoSorter;
 
-import java.awt.*;
+import java.awt.EventQueue;
+import java.awt.Menu;
+import java.awt.MenuBar;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Stack;
 
 import javax.swing.*;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 
 public class MainForm extends JFrame{
 
@@ -21,39 +29,151 @@ public class MainForm extends JFrame{
 	private JTextField directorSearch;
 	private JTextField yearSearch;
 	private JTextField ratingSearch;
-	private JComboBox<Character> lengthOperator;
-	private JTextField lengthSearch;
 	private JTextField stringSearch;
 	private JButton searchButton;
 	private JButton stringSearchButton;
+	private MyComboBoxRenderer comboBoxRenderer;
+	private MyComboBoxEditor comboBoxEditor;
+	private JButton playButton;
+	private JButton exitButton;
+	private List<Video> currentVideos;
 
 	private FileManager fileManager;
-
-
+	private SearchStringInterpreter interpreter;
+	
+	private String[] genres;
 
 	public MainForm(String path){
 
 		fileManager = new FileManager(path);
+		interpreter = new SearchStringInterpreter();
+		currentVideos = new LinkedList<Video>();
 		fileManager.loadVideos();
+		
+		loadGenres();
+		addGenre("Action");
+		addGenre("Drama");
 
 		setTitle("Projekt");
 		setLayout(null);
 		setSize(1200, 768);
+		setResizable(false);
+		
 		setLocationRelativeTo(null);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 
 		initUI();
 	}
+	
+	private void loadGenres(){
+		this.genres = new String[0];
+	}
+	
+	private void addGenre(String genre){
+		for (int i = 0; i < genres.length; i++){
+			if (genre.toLowerCase().equals(genres[i].toLowerCase())){
+				return;
+			}
+		}
+		
+		String[] dummy = genres;
+		this.genres = new String[genres.length + 1];
+		
+		for (int i = 0; i < dummy.length; i++){
+			this.genres[i] = dummy[i];
+		}
+		
+		this.genres[genres.length - 1] = genre;
+		updateGenres();
+	}
+	
+	private void updateGenres(){
+		this.comboBoxRenderer = new MyComboBoxRenderer(genres);
+		this.comboBoxEditor = new MyComboBoxEditor(genres);
+	}
+	
+	private void removeGenre(String genre){
+		
+		int index = -1;
+		for (int i = 0; i < genres.length; i++){
+			if (genre.toLowerCase().equals(genres[i].toLowerCase())){
+				index = i;
+				break;
+			}
+		}
+		
+		if (index != -1){
+			String[] dummy = genres;
+			this.genres = new String[dummy.length - 1];
+			int subtract = 0;
+			for (int i = 0; i < dummy.length; i++){
+				if (i != index){
+					genres[i - subtract] = dummy[i];
+				} else{
+					subtract = -1;
+				}
+			}
+			
+			updateGenres();
+		}
+	}
+	
+	private void updateVideos(){
+		for (Video v : fileManager.getVideos()){
+			MetaData md = v.getMetaData();
+			
+			for (int i = 0; i < mainTable.getRowCount(); i++){
+				if (md.getPath().toAbsolutePath().equals(mainTableModel.getValueAt(i, 5))){
+					md.setName(mainTableModel.getValueAt(i, 0).toString());
+					md.setDirector(mainTableModel.getValueAt(i, 1).toString());
+					md.setGenre(mainTableModel.getValueAt(i, 2).toString());
+					md.setYear(mainTableModel.getValueAt(i, 3).toString());
+					md.setRating(mainTableModel.getValueAt(i, 4).toString());
+				}
+			}
+			
+			
+		}
+	}
 
 
-	private void updateList(String titel, String genre){
+	private void updateList(){
 		while(mainTableModel.getRowCount() > 0)
 			mainTableModel.removeRow(0);
 
-		for (Video v : fileManager.getVideos()){
-			if ((titel == "" || v.getMetaData().getName().toLowerCase().contains(titel.toLowerCase())) && (genre == "" || v.getMetaData().getGenre().toLowerCase().contains(genre.toLowerCase()))){
-				mainTableModel.addRow(new Object[]{v.getMetaData().getName(), v.getMetaData().getGenre()});
+		List<Video> result = new LinkedList<Video>();
+		if (titelSearch.getText() != ""){
+			result = interpreter.interpretString(titelSearch.getText(), fileManager.getVideos(), "Title");
+		}
+		if (!genreSearch.getText().isEmpty()){
+			
+			result = interpreter.interpretString(genreSearch.getText(), result.isEmpty() ? fileManager.getVideos() : result, "Genre");
+		}
+		if (!directorSearch.getText().isEmpty()){
+			
+			result = interpreter.interpretString(directorSearch.getText(), result.isEmpty() ? fileManager.getVideos() : result, "Director");
+		}
+		if (!yearSearch.getText().isEmpty()){
+			
+			result = interpreter.interpretString(yearSearch.getText(), result.isEmpty() ? fileManager.getVideos() : result, "Year");
+		}
+		if (!ratingSearch.getText().isEmpty()){
+			
+			result = interpreter.interpretString(ratingSearch.getText(), result.isEmpty() ? fileManager.getVideos() : result, "Rating");
+		}
+		
+		if (titelSearch.getText().isEmpty() && genreSearch.getText().isEmpty() && directorSearch.getText().isEmpty() && yearSearch.getText().isEmpty() && ratingSearch.getText().isEmpty()){
+			for (Video v : fileManager.getVideos()){
+				MetaData md = v.getMetaData();
+				mainTableModel.addRow(new Object[]{md.getName(), md.getDirector(), md.getGenre(), md.getYear(), md.getRating(), md.getPath().toAbsolutePath()});
 			}
+			currentVideos = fileManager.getVideos();
+		} else{
+			for (Video v : result){
+				MetaData md = v.getMetaData();
+				mainTableModel.addRow(new Object[]{md.getName(), md.getDirector(), md.getGenre(), md.getYear(), md.getRating(), md.getPath().toAbsolutePath()});
+			}
+			currentVideos = result;
 		}
 	}
 
@@ -68,11 +188,11 @@ public class MainForm extends JFrame{
 		directorSearch = new JTextField();
 		yearSearch = new JTextField();
 		ratingSearch = new JTextField();
-		lengthOperator = new JComboBox<Character>();
-		lengthSearch = new JTextField();
 
 		searchButton = new JButton();
 		stringSearchButton = new JButton();
+		playButton = new JButton();
+		exitButton = new JButton();
 		stringSearch = new JTextField();
 
 
@@ -81,14 +201,23 @@ public class MainForm extends JFrame{
 		labels.put("director_label", new JLabel());
 		labels.put("year_label", new JLabel());
 		labels.put("rating_label", new JLabel());
-		labels.put("length_label", new JLabel());
 		labels.put("string_label", new JLabel());
+		
 
-		mainTableModel.setColumnIdentifiers(new String[]{"Titel", "Genre", "Regissör", "År", "Betyg 1-5", "Längd"});
+		mainTableModel.setColumnIdentifiers(new String[]{"Titel", "Regissör", "Genre", "År", "Betyg 1-5", "Sökväg" });
 		mainTable.setModel(mainTableModel);
 		mainTableScroll.setSize(800, 690);
 		mainTableScroll.setLocation(20, 30);
-
+		
+		comboBoxRenderer = new MyComboBoxRenderer(genres);
+		comboBoxEditor = new MyComboBoxEditor(genres);
+		
+		
+		TableColumn col = mainTable.getColumnModel().getColumn(2);
+		col.setCellEditor(comboBoxEditor);
+		col.setCellRenderer(comboBoxRenderer);
+		
+		
 		labels.get("titel_label").setText("Titel:");
 		labels.get("titel_label").setSize(70, 20);
 		labels.get("titel_label").setLocation(840, 30);
@@ -109,10 +238,6 @@ public class MainForm extends JFrame{
 		labels.get("rating_label").setSize(80, 20);
 		labels.get("rating_label").setLocation(840, 150);
 
-		labels.get("length_label").setText("Längd:");
-		labels.get("length_label").setSize(70, 20);
-		labels.get("length_label").setLocation(840, 180);
-
 		labels.get("string_label").setText("Söksträng:");
 		labels.get("string_label").setSize(70,20);
 		labels.get("string_label").setLocation(840, 270);
@@ -132,26 +257,17 @@ public class MainForm extends JFrame{
 		ratingSearch.setSize(200, 20);
 		ratingSearch.setLocation(920, 151);
 
-		lengthOperator.addItem('<');
-		lengthOperator.addItem('>');
-		lengthOperator.setSize(40, 20);
-		lengthOperator.setLocation(1080, 181);
-
-		lengthSearch.setText("hh:mm");
-		lengthSearch.setSize(155, 20);
-		lengthSearch.setLocation(920, 181);
-
 		stringSearch.setSize(280,20);
 		stringSearch.setLocation(840, 300);
 
-		//lengthOperator.setSize()
-
+	
 		searchButton.setSize(100, 30);
 		searchButton.setLocation(1020, 210);
 		searchButton.setText("Sök");
 		searchButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				updateList(titelSearch.getText(), genreSearch.getText());
+				updateVideos();
+				updateList();
 			}
 		});
 
@@ -159,20 +275,43 @@ public class MainForm extends JFrame{
 		stringSearchButton.setLocation(1020, 330);
 		stringSearchButton.setText("Sök");
 		stringSearchButton.addActionListener(new ActionListener(){
+			
 			public void actionPerformed(ActionEvent e){
 				// todo 
 				while(mainTableModel.getRowCount() > 0)
 					mainTableModel.removeRow(0);
-				for (Video v : new SearchStringInterpreter().interpretString(stringSearch.getText(), fileManager.getVideos()))
-					mainTableModel.addRow(new Object[]{v.getMetaData().getName(), v.getMetaData().getGenre()});
+				List<Video> result = interpreter.interpretString(stringSearch.getText(), fileManager.getVideos(), "");
+				for (Video v : result){
+					MetaData md = v.getMetaData();
+					mainTableModel.addRow(new Object[]{md.getName(), md.getDirector(), md.getGenre(), md.getYear(), md.getRating(), md.getPath().toAbsolutePath()});
+				}
+				
+				updateVideos();
 			}
 		});
-
-
-		for (Video v : fileManager.getVideos()){
-			mainTableModel.addRow(new Object[]{v.getMetaData().getName(), v.getMetaData().getGenre()});
-		}
-
+		
+		playButton.setSize(100, 30);
+		playButton.setLocation(1020, 690);
+		playButton.setText("Spela");
+		playButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+	
+				if (mainTable.getSelectedRow() > -1){
+					startVLC(currentVideos.get(mainTable.getSelectedRow()).getPath().toAbsolutePath().toString());
+				}
+				//Dummycode
+			}
+		});	
+		
+		exitButton.setSize(100, 30);
+		exitButton.setLocation(900, 690);
+		exitButton.setText("Avsluta");
+		exitButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				//Dummycode
+			}
+		});		
+				
 		mainTableScroll.setEnabled(true);
 		mainTable.setEnabled(true);
 		mainTableScroll.setVisible(true);
@@ -182,6 +321,12 @@ public class MainForm extends JFrame{
 		for (JLabel l : labels.values()){
 			add(l);
 		}
+		
+		for (Video v : fileManager.getVideos()){
+			MetaData md = v.getMetaData();
+			mainTableModel.addRow(new Object[]{md.getName(), md.getDirector(), md.getGenre(), md.getYear(), md.getRating(), md.getPath().toAbsolutePath()});
+			currentVideos = fileManager.getVideos();
+		}
 
 		add(titelSearch);
 		add(genreSearch);
@@ -189,10 +334,19 @@ public class MainForm extends JFrame{
 		add(yearSearch);
 		add(ratingSearch);
 		add(searchButton);
-		add(lengthSearch);
-		add(lengthOperator);
+
 		add(stringSearch);
 		add(stringSearchButton);
+		add(playButton);
+		add(exitButton);
+	}
+	
+	private void startVLC(String path){
+		try{
+			Runtime.getRuntime().exec("vlc " + path);
+		} catch(Exception ex){
+			System.out.println(ex.getMessage());
+		}
 	}
 
 	public static void main(String[] args){
@@ -200,7 +354,8 @@ public class MainForm extends JFrame{
 			@Override
 			public void run(){
 				
-				String path = FileChooser.fileChooser();
+				//String path = FileChooser.fileChooser();
+				String path = "/media/oskan620/KINGSTON";
 				
 				if (!path.equals("")){
 					MainForm main = new MainForm(path);
@@ -208,5 +363,7 @@ public class MainForm extends JFrame{
 				}
 			}
 		});
+		
+		
 	}
 }

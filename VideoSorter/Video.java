@@ -14,8 +14,12 @@ public abstract class Video {
 	public Video(Path path){
 		this.path = path;
 		this.name = getFileName();
-		this.metaData = new MetaData(name, "");
+		this.metaData = new MetaData(name, "", "", "", "", "", Paths.get("/metadata/" + name + ".mdata"));
 		updateMetaData();
+	}
+	
+	public Path getPath(){
+		return path;
 	}
 	
 	public MetaData getMetaData(){
@@ -34,7 +38,7 @@ public abstract class Video {
 		metaDataDirectory.mkdirs();
 		
 		if (metaDataDirectory.exists()){
-			File metaDataFile = new File(Paths.get("metadata\\" + name + ".mdata").toString());
+			File metaDataFile = new File(Paths.get("metadata/" + name + ".mdata").toString());
 			if (!metaDataFile.exists()){
 				try{
 					metaDataFile.createNewFile();
